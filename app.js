@@ -2,7 +2,7 @@ const STORAGE_KEY = 'herstellen-field-capture-state-v1';
 const PHOTO_MAX_SIZE = 1280;
 const PHOTO_QUALITY = 0.74;
 
-const categoryData = [
+let categoryData = [
   {
     code: 'structural',
     name: 'Structural',
@@ -74,6 +74,7 @@ const categoryData = [
 let state = {
   reportNumber: '',
   syncUrl: '',
+  lookupData: [],
   findings: []
 };
 
@@ -96,6 +97,10 @@ function init() {
   setDefaultInspectionDate();
   renderAll();
   registerServiceWorker();
+
+  if (state.syncUrl) {
+    refreshLookupDataFromServer();
+  }
 }
 
 function cacheElements() {
@@ -152,7 +157,10 @@ function bindEvents() {
   elements.saveSettingsBtn.addEventListener('click', saveSettings);
   elements.createInspectionBtn.addEventListener('click', createInspection);
   elements.category.addEventListener('change', refreshDatalists);
-  elements.component.addEventListener('change', updateCustomSelectVisibility);
+  elements.component.addEventListener('change', function() {
+    refreshFindingsForComponent();
+    updateCustomSelectVisibility();
+  });
   elements.finding.addEventListener('change', updateCustomSelectVisibility);
   elements.photoInput.addEventListener('change', handlePhotoSelection);
   elements.saveFindingBtn.addEventListener('click', saveFinding);
@@ -167,12 +175,17 @@ function loadState() {
     state = {
       reportNumber: '',
       syncUrl: '',
+      lookupData: [],
       findings: []
     };
   }
 
   if (!Array.isArray(state.findings)) {
     state.findings = [];
+  }
+
+  if (Array.isArray(state.lookupData) && state.lookupData.length > 0) {
+    categoryData = state.lookupData;
   }
 }
 
@@ -197,11 +210,28 @@ function refreshDatalists() {
   const category = getSelectedCategory();
 
   populateSelect(elements.component, 'Select component', category.components || []);
-  populateSelect(elements.finding, 'Select finding', category.findings || []);
 
   elements.componentCustom.value = '';
   elements.findingCustom.value = '';
+  refreshFindingsForComponent();
   updateCustomSelectVisibility();
+}
+
+function refreshFindingsForComponent() {
+  const category = getSelectedCategory();
+  const component = elements.component.value;
+  let findings = [];
+
+  if (component && component !== '__custom__' && category.findingsByComponent) {
+    findings = category.findingsByComponent[component] || [];
+  }
+
+  if (findings.length === 0 && Array.isArray(category.findings)) {
+    findings = category.findings;
+  }
+
+  populateSelect(elements.finding, 'Select finding', findings);
+  elements.findingCustom.value = '';
 }
 
 function populateSelect(select, placeholder, values) {
@@ -233,6 +263,10 @@ function saveSettings() {
   saveState();
   renderAll();
   showToast('Setup saved');
+
+  if (state.syncUrl) {
+    refreshLookupDataFromServer();
+  }
 }
 
 async function createInspection() {
@@ -273,6 +307,7 @@ async function createInspection() {
     state.reportNumber = response.reportNo;
     saveState();
     renderAll();
+    refreshLookupDataFromServer();
     resetNewInspectionForm();
     elements.newInspectionPanel.hidden = true;
     showToast('New report created: ' + response.reportNo);
@@ -281,6 +316,30 @@ async function createInspection() {
   } finally {
     elements.createInspectionBtn.disabled = false;
     elements.createInspectionBtn.textContent = 'Create Inspection & Use Report Number';
+  }
+}
+
+async function refreshLookupDataFromServer() {
+  const endpoint = (state.syncUrl || elements.syncUrl.value || '').trim();
+
+  if (!endpoint) {
+    return;
+  }
+
+  try {
+    const response = await callAppsScriptAction(endpoint, 'getLookupData', {});
+
+    if (!response || response.success !== true || !Array.isArray(response.lookupData)) {
+      return;
+    }
+
+    state.lookupData = response.lookupData;
+    categoryData = response.lookupData;
+    saveState();
+    populateCategories();
+    showToast('Dropdown database updated');
+  } catch (error) {
+    // Keep the built-in offline list if the live database cannot be reached.
   }
 }
 
