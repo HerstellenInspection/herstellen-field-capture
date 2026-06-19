@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#202124">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Herstellen Capture">
+  <title>Herstellen Field Capture</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Herstellen</p>
+      <h1>Field Capture</h1>
+    </div>
+    <button class="icon-button" id="settingsToggle" type="button" aria-label="Settings" title="Settings">
+      <span aria-hidden="true">⚙</span>
+    </button>
+  </header>
+
+  <main>
+    <section class="status-strip" aria-label="Capture status">
+      <div>
+        <span class="status-label">Report</span>
+        <strong id="activeReportLabel">Not set</strong>
+      </div>
+      <div>
+        <span class="status-label">Queue</span>
+        <strong id="queueCount">0</strong>
+      </div>
+      <div>
+        <span class="status-label">Connection</span>
+        <strong id="connectionState">Checking</strong>
+      </div>
+    </section>
+
+    <button class="secondary-action" id="newInspectionToggle" type="button">Start New Inspection</button>
+
+    <section class="panel" id="settingsPanel" hidden>
+      <h2>Setup</h2>
+
+      <label for="reportNumber">Active report number</label>
+      <input id="reportNumber" autocomplete="off" placeholder="HER-2026-001">
+
+      <label for="syncUrl">Apps Script Web App URL</label>
+      <input id="syncUrl" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec">
+
+      <button id="saveSettingsBtn" type="button">Save Setup</button>
+      <p class="helper">Use the deployed Web App URL ending in <strong>/exec</strong>. The app works offline after setup.</p>
+    </section>
+
+    <section class="panel" id="newInspectionPanel" hidden>
+      <h2>Start New Inspection</h2>
+
+      <label for="inspectionDate">Inspection Date</label>
+      <input id="inspectionDate" type="date">
+
+      <label for="clientName">Client Name</label>
+      <input id="clientName" autocomplete="name" placeholder="Client full name">
+
+      <label for="clientEmail">Client Email</label>
+      <input id="clientEmail" type="email" autocomplete="email" placeholder="client@email.com">
+
+      <label for="clientPhone">Client Phone</label>
+      <input id="clientPhone" type="tel" autocomplete="tel" placeholder="072 000 0000">
+
+      <label for="propertyAddress">Property Address</label>
+      <textarea id="propertyAddress" placeholder="Full property address"></textarea>
+
+      <div class="field-row">
+        <div>
+          <label for="propertyType">Property Type</label>
+          <select id="propertyType">
+            <option value="">Select property type</option>
+            <option>Residential House</option>
+            <option>Townhouse</option>
+            <option>Apartment / Flat</option>
+            <option>Commercial Property</option>
+            <option>Vacant Property</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label for="occupancy">Occupancy</label>
+          <select id="occupancy">
+            <option value="">Select occupancy</option>
+            <option>Occupied</option>
+            <option>Vacant</option>
+            <option>Partially Furnished</option>
+            <option>Furnished</option>
+            <option>Not Confirmed</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="gps">GPS / Location Link</label>
+      <input id="gps" autocomplete="off" placeholder="Optional GPS or Google Maps link">
+
+      <button id="createInspectionBtn" type="button">Create Inspection & Use Report Number</button>
+      <p class="helper">This creates the row in Google Sheets and sets the returned report number as active on this phone.</p>
+    </section>
+
+    <section class="panel">
+      <h2>New Finding</h2>
+
+      <label for="photoInput">Photo</label>
+      <input id="photoInput" type="file" accept="image/*" capture="environment">
+      <img id="photoPreview" class="photo-preview" alt="Selected inspection photo preview" hidden>
+
+      <div class="field-row">
+        <div>
+          <label for="category">Category</label>
+          <select id="category"></select>
+        </div>
+        <div>
+          <label for="severity">Severity</label>
+          <select id="severity">
+            <option>Informational</option>
+            <option>Minor</option>
+            <option>Moderate</option>
+            <option>Major</option>
+            <option>Safety</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="component">Component</label>
+      <select id="component"></select>
+      <input id="componentCustom" autocomplete="off" placeholder="Type component" hidden>
+
+      <label for="finding">Finding</label>
+      <select id="finding"></select>
+      <input id="findingCustom" autocomplete="off" placeholder="Type finding" hidden>
+
+      <label for="location">Location</label>
+      <input id="location" autocomplete="off" placeholder="Example: Rear roof slope">
+
+      <label for="notes">Notes</label>
+      <textarea id="notes" placeholder="Site notes, measurements, access limits, client comments"></textarea>
+
+      <div class="field-row">
+        <div>
+          <label for="repairCost">Estimated repair cost</label>
+          <input id="repairCost" inputmode="decimal" autocomplete="off" placeholder="Optional">
+        </div>
+        <label class="switch-row" for="includeSummary">
+          <input id="includeSummary" type="checkbox">
+          <span>Executive summary</span>
+        </label>
+      </div>
+
+      <button id="saveFindingBtn" type="button">Save Finding</button>
+    </section>
+
+    <section class="panel queue-panel">
+      <div class="section-title">
+        <h2>Saved Findings</h2>
+        <button class="small-button" id="syncBtn" type="button">Sync</button>
+      </div>
+      <div id="queueList" class="queue-list"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
