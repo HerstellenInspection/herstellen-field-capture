@@ -1,6 +1,6 @@
 const STORAGE_KEY = 'herstellen-field-capture-state-v1';
-const PHOTO_MAX_SIZE = 1280;
-const PHOTO_QUALITY = 0.74;
+const PHOTO_MAX_SIZE = 1024;
+const PHOTO_QUALITY = 0.68;
 
 let categoryData = [
   {
